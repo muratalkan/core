@@ -5,15 +5,47 @@ namespace App\Connectors;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use App\Models\Token;
+use App\Models\GoEngine;
 
 class GenericConnector
 {
-    public $server, $user;
+    public $server;
+    public $user;
+    private $engine;
+    private $client;
 
     public function __construct(\App\Models\Server $server = null, $user = null)
     {
+        $engines = GoEngine::where("enabled", true)->get();
+        if ($engines->count() == 0) {
+            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
+        }
+        foreach ($engines as $engine) {
+            $status = @fsockopen(
+                $engine->ip_address,
+                $engine->port,
+                $errno,
+                $errstr,
+                3
+            );
+            if (!is_resource($status)) {
+                $engine->update([
+                    "enabled" => false
+                ]);
+                continue;
+            }
+            $this->engine = $engine;
+            break;
+        }
+        if ($this->engine == null) {
+            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
+        }
         $this->server = $server;
         $this->user = $user;
+        $this->client = new Client([
+            "base_uri" => "https://" . $this->engine->ip_address . ":" . $this->engine->port,
+            "verify" => false
+        ]);
     }
 
     public function execute($command)
@@ -96,8 +128,6 @@ class GenericConnector
 
     public function request($url, $params, $retry = 3)
     {
-        $client = new Client(['verify' => false]);
-
         if ($this->server != null) {
             $params["server_id"] = $this->server->id;
         }
@@ -107,18 +137,18 @@ class GenericConnector
         } else {
             $params["token"] = Token::create($this->user->id);
         }
-
+        
         try {
-            $response = $client->request(
+            $response = $this->client->request(
                 'POST',
-                env("RENDER_ENGINE_ADDRESS","https://127.0.0.1:5454"). "/$url",
+                "/$url",
                 [
                     "form_params" => $params,
                 ]
             );
             return $response->getBody()->getContents();
         } catch (\Exception $exception) {
-            abort(504,"Liman Go Servisinde bir sorun oluştu, lütfen yöneticinizle iletişime geçin." . $exception->getMessage());
+            abort(504, "Liman Go Servisinde bir sorun oluştu, lütfen yöneticinizle iletişime geçin." . $exception->getMessage());
             return null;
         }
     }

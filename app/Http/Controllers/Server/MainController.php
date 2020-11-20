@@ -11,9 +11,9 @@ class MainController extends Controller
 {
     public function all()
     {
-        if(request()->wantsJson()){
+        if (request()->wantsJson()) {
             return response()->json(servers());
-        }else{
+        } else {
             return view("server.index");
         }
     }
