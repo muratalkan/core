@@ -17,6 +17,8 @@ use App\Jobs\ExtensionUpdaterJob;
 use App\Jobs\ExtensionDependenciesJob;
 use Illuminate\Contracts\Bus\Dispatcher;
 use App\Models\AdminNotification;
+use App\Models\ExtensionFiles;
+use Carbon\Carbon;
 
 /**
  * Class MainController
@@ -95,7 +97,8 @@ class MainController extends Controller
             return respond("Lütfen geçerli bir eklenti giriniz.", 201);
         }
         $verify = false;
-        $zipFile = request()->file('extension');
+
+        $targetPath = request()->file('extension')->path();
         if (
             endsWith(
                 request()
@@ -116,13 +119,10 @@ class MainController extends Controller
             if (!(bool) $verify) {
                 return respond("Eklenti dosyanız doğrulanamadı.", 201);
             }
+            $targetPath = "/tmp/" . str_random(16);
             $decrypt = trim(
                 shell_exec(
-                    "gpg --status-fd 1 -d -o '/tmp/" .
-                        request()
-                            ->file('extension')
-                            ->getClientOriginalName() .
-                        "' " .
+                    "gpg --status-fd 1 -d -o '" . $targetPath . "' " .
                         request()
                             ->file('extension')
                             ->path() .
@@ -135,11 +135,6 @@ class MainController extends Controller
                     201
                 );
             }
-            $zipFile =
-                "/tmp/" .
-                request()
-                    ->file('extension')
-                    ->getClientOriginalName();
         } else {
             if (!request()->has('force')) {
                 return respond(
@@ -148,11 +143,15 @@ class MainController extends Controller
                 );
             }
         }
-        list($error, $new) = self::setupNewExtension($zipFile, $verify);
+
+        list($error, $new) = $this->setupNewExtension($targetPath, $verify);
 
         if ($error) {
             return $error;
         }
+
+        $new->file_update_at = Carbon::now();
+        $new->save();
 
         system_log(3, "EXTENSION_UPLOAD_SUCCESS", [
             "extension_id" => $new->id,
@@ -228,44 +227,16 @@ class MainController extends Controller
         $new->status = "1";
         $new->save();
         
-        if (array_key_exists("dependencies", $json) && $json["dependencies"] != "") {
-            $job = (new ExtensionDependenciesJob(
-                $new,
-                $json["dependencies"]
-            ))->onQueue('system_updater');
-    
-            // Dispatch job right away.
-            $job_id = app(Dispatcher::class)->dispatch($job);
-
-            AdminNotification::create([
-                "title" =>
-                    $new->display_name . " eklentisinin bağımlılıkları yükleniyor!",
-                "type" => "",
-                "message" =>
-                    $new->display_name .
-                    " eklentisinin bağımlılıkları yükleniyor, bu süre içerisinde eklentiyi kullanamazsınız.",
-                "level" => 3,
-            ]);
-            $new->update([
-                "status" == "0"
-            ]);
-            $new->save();
-        }
-
-        $system = rootSystem();
-
-        $system->userAdd($new->id);
-
-        $passPath = '/liman/keys' . DIRECTORY_SEPARATOR . $new->id;
-        file_put_contents($passPath, Str::random(32));
-
-        $extension_folder = "/liman/extensions/" . strtolower($json["name"]);
-
-        `mkdir -p $extension_folder`;
-        `cp -r $path/* $extension_folder/.`;
-        
-        $system->fixExtensionPermissions($new->id, $new->name);
-
+        $file = request()->file('extension');
+        $str = file_get_contents($zipFile);
+        $command = "/usr/bin/sha256sum " . $zipFile . " | awk '{ print $1 }'";
+        $shasum = trim(shell_exec($command));
+        ExtensionFiles::create([
+            "extension_id" => $new->id,
+            "name" => $file->getClientOriginalName(),
+            "sha256sum" => $shasum,
+            "extension_data" => base64_encode($str)
+        ]);
         return [null, $new];
     }
 

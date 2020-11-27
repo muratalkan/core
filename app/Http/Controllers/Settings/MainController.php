@@ -653,6 +653,7 @@ input(type=\"imtcp\" port=\"514\")";
                 'LIMAN_RESTRICTED_EXTENSION'
             ),
         ]);
+        updateSystemSettings();
         if ($flag) {
             return respond("Kısıtlı mod ayarları başarıyla güncellendi!");
         } else {

@@ -97,7 +97,7 @@ class OneController extends Controller
             $client = new Client(['verify' => false]);
             $result = "";
             try {
-                $res = $client->request('POST', env("RENDER_ENGINE_ADDRESS","https://127.0.0.1:5454"), [
+                $res = $client->request('POST', getProxyServer(), [
                     'form_params' => [
                         "lmntargetFunction" => $extension["verification"],
                         "extension_id" => extension()->id,
@@ -209,10 +209,10 @@ class OneController extends Controller
             "status" => "1"
         ]);
 
-        if($flag){
+        if ($flag) {
             return respond("Eklenti başarıyla aktifleştirildi!");
-        }else{
-            return respond("Eklenti aktifleştirilirken bir hata oluştu!",201);
+        } else {
+            return respond("Eklenti aktifleştirilirken bir hata oluştu!", 201);
         }
     }
 
@@ -224,19 +224,20 @@ class OneController extends Controller
         
 
         $file = file_get_contents("/liman/extensions/" .strtolower(extension()->name) . "/db.json");
-        $json = json_decode($file,true);
-        if(json_last_error() != JSON_ERROR_NONE){
-            return respond("Eklenti dosyası okunurken bir hata oluştu!",201);
+        $json = json_decode($file, true);
+        if (json_last_error() != JSON_ERROR_NONE) {
+            return respond("Eklenti dosyası okunurken bir hata oluştu!", 201);
         }
 
-        if (array_key_exists("dependencies",$json) && $json["dependencies"] != ""){
+        if (array_key_exists("dependencies", $json) && $json["dependencies"] != "") {
             $job = (new ExtensionDependenciesJob(
                 extension(),
                 $json["dependencies"]
             ))->onQueue('system_updater');
     
             // Dispatch job right away.
-            $job_id = app(Dispatcher::class)->dispatch($job);$job = (new ExtensionDependenciesJob(
+            $job_id = app(Dispatcher::class)->dispatch($job);
+            $job = (new ExtensionDependenciesJob(
                 extension(),
                 $json["dependencies"]
             ))->onQueue('system_updater');
@@ -255,8 +256,8 @@ class OneController extends Controller
             ]);
 
             return respond("İşlem başlatıldı!");
-        }else{
-            return respond("Bu eklentinin hiçbir bağımlılığı yok!",201);
+        } else {
+            return respond("Bu eklentinin hiçbir bağımlılığı yok!", 201);
         }
     }
 
@@ -284,14 +285,14 @@ class OneController extends Controller
             "request" => request()->all(),
         ]);
 
-        if(is_file(storage_path("extension_updates"))){
-            $json = json_decode(file_get_contents(storage_path("extension_updates")),true);
-            for($i = 0; $i < count($json); $i++){
-                if($json[$i]["name"] == $ext_name){
+        if (is_file(storage_path("extension_updates"))) {
+            $json = json_decode(file_get_contents(storage_path("extension_updates")), true);
+            for ($i = 0; $i < count($json); $i++) {
+                if ($json[$i]["name"] == $ext_name) {
                     unset($json[$i]);
                 }
             }
-            file_put_contents(storage_path("extension_updates"),json_encode($json));
+            file_put_contents(storage_path("extension_updates"), json_encode($json));
         }
         
         system_log(3, "EXTENSION_REMOVE");

@@ -3,42 +3,20 @@
 namespace App\System;
 
 use GuzzleHttp\Client;
-use App\Models\GoEngine;
+use App\Models\SystemSettings;
 
 class Helper
 {
     private $engine;
     public function __construct()
     {
-        $engines = GoEngine::where("enabled", true)->get();
-        if ($engines->count() == 0) {
-            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
-        }
-        foreach ($engines as $engine) {
-            $status = @fsockopen(
-                $engine->ip_address,
-                $engine->port,
-                $errno,
-                $errstr,
-                3
-            );
-            if (!is_resource($status)) {
-                $engine->update([
-                    "enabled" => false
-                ]);
-                continue;
-            }
-            $this->engine = $engine;
-            break;
-        }
-        if ($this->engine == null) {
-            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
-        }
         $this->client = new Client([
-            "base_uri" => "https://" . $this->engine->ip_address . ":" . $this->engine->port,
-            "verify" => false
+            "base_uri" => getProxyServer(),
+            "verify" => false,
+            "headers" => [
+                "liman-system" => getGoEnginePassword()
+            ]
         ]);
-        $this->client->setDefaultOption('headers', array('liman-system' => $this->engine->token));
     }
 
     public function userAdd($extension_id)
@@ -79,35 +57,60 @@ class Helper
 
     public function dnsUpdate($server1, $server2, $server3)
     {
-        try {
-            $this->client->request(
-                'POST',
-                "/dns",
-                [
-                    "form_params" => [
-                        "server1" => $server1,
-                        "server2" => $server2,
-                        "server3" => $server3,
-                    ],
-                ]
-            );
-        } catch (\Exception $e) {
-            return false;
-        }
+        $arr = [
+            "server1" => $server1,
+            "server2" => $server2,
+            "server3" => $server3,
+        ];
+
+        SystemSettings::updateOrCreate(
+            ['key' => 'SYSTEM_DNS'],
+            ['data' => json_encode($arr)]
+        );
+
         return true;
     }
 
     public function addCertificate($tmpPath, $targetName)
     {
+        $arr = [
+            "certificate" => file_get_contents($tmpPath),
+            "targetName" => $targetName
+        ];
+        
+        $current = SystemSettings::where("key", "SYSTEM_CERTIFICATES")->first();
+
+        if ($current) {
+            $foo = json_decode($current->data, true);
+            $flag = true;
+            for ($i = 0; $i < count($foo); $i++) {
+                if ($foo[$i]["targetName"] == $targetName) {
+                    $foo[$i]["certificate"] = $arr["certificate"];
+                    $flag = false;
+                    break;
+                }
+            }
+            
+            if ($flag) {
+                array_push($foo, $arr);
+            }
+            
+            $current->update([
+                "data" => json_encode($foo)
+            ]);
+        } else {
+            SystemSettings::create([
+                "key" => "SYSTEM_CERTIFICATES",
+                "data" => json_encode([$arr])
+            ]);
+        }
+
         try {
             $this->client->request(
                 'POST',
                 "/certificateAdd",
                 [
-                    "form_params" => [
-                        "tmpPath" => $tmpPath,
-                        "targetName" => $targetName
-                    ],
+                    "form_params" => $arr,
                 ]
             );
         } catch (\Exception $e) {
@@ -118,38 +121,31 @@ class Helper
 
     public function removeCertificate($targetName)
     {
-        try {
-            $this->client->request(
-                'POST',
-                "/certificateAdd",
-                [
-                    "form_params" => [
-                        "targetName" => $targetName
-                    ],
-                ]
-            );
-        } catch (\Exception $e) {
-            return false;
+        $arr = [
+            "targetName" => $targetName
+        ];
+        
+        $current = SystemSettings::where("key", "SYSTEM_CERTIFICATES")->first();
+
+        if ($current) {
+            $foo = json_decode($current->data, true);
+            for ($i = 0; $i < count($foo); $i++) {
+                if ($foo[$i]["targetName"] == $targetName) {
+                    unset($foo[$i]);
+                    $foo = array_values($foo);
+                    break;
+                }
+            }
+            $current->update([
+                "data" => $foo
+            ]);
         }
+
         return true;
     }
 
     public function fixExtensionPermissions($extension_id, $extension_name)
     {
-        try {
-            $this->client->request(
-                'POST',
-                "/fixPermissions",
-                [
-                    "form_params" => [
-                        "extension_id" => cleanDash($extension_id),
-                        "extension_name" => $extension_name
-                    ],
-                ]
-            );
-        } catch (\Exception $e) {
-            return false;
-        }
         return true;
     }
 
@@ -158,7 +154,7 @@ class Helper
         try {
             $response = $this->client->request(
                 'POST',
-                "/fixPermissions",
+                "/runCommand",
                 [
                     "form_params" => [
                         "command" => $command

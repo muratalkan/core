@@ -20,7 +20,7 @@ class MainController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            $this->initializeClass();
+            //$this->initializeClass();
             return $next($request);
         });
     }

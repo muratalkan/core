@@ -148,3 +148,7 @@ Artisan::command('module:remove {module_name}', function ($module_name) {
         $this->error("Modul silinemedi.$flag");
     }
 })->describe("Module remove");
+
+Artisan::command('update_system_settings', function () {
+    updateSystemSettings();
+})->describe("Update system settings on database");

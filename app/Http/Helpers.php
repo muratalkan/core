@@ -4,6 +4,7 @@ use App\Models\AdminNotification;
 use App\Models\Extension;
 use App\Models\Notification;
 use App\Models\Permission;
+use App\Models\SystemSettings;
 use App\Models\Server;
 use App\Models\Certificate;
 use App\User;
@@ -460,6 +461,64 @@ if (!function_exists('system_log')) {
     }
 }
 
+if (!function_exists('getProxyServer')) {
+    /**
+     * @return \App\Models\Server
+     */
+    function getProxyServer()
+    {
+        return env("LIMAN_FENER_ADDRESS", "https://127.0.0.1:6696");
+    }
+}
+
+if (!function_exists('getGoEnginePassword')) {
+    /**
+     * @return \App\Models\Server
+     */
+    function getGoEnginePassword()
+    {
+        return SystemSettings::where("key", "GO_KEY")->first()->data;
+    }
+}
+
+if (!function_exists('updateSystemSettings')) {
+    function updateSystemSettings()
+    {
+        SystemSettings::updateOrCreate(
+            ['key' => 'APP_KEY'],
+            ['data' => env('APP_KEY')]
+        );
+
+        SystemSettings::updateOrCreate(
+            ['key' => 'LIMAN_RESTRICTED'],
+            ['data' => env('LIMAN_RESTRICTED')]
+        );
+
+        SystemSettings::updateOrCreate(
+            ['key' => 'SSL_PUBLIC_KEY'],
+            ['data' => file_get_contents("/liman/certs/liman.crt")]
+        );
+
+        SystemSettings::updateOrCreate(
+            ['key' => 'SSL_PRIVATE_KEY'],
+            ['data' => file_get_contents("/liman/certs/liman.key")]
+        );
+
+        SystemSettings::updateOrCreate(
+            ['key' => 'LIMAN_IP'],
+            ['data' => env('CURRENT_IP', array_key_exists("SERVER_ADDR", $_SERVER) ? $_SERVER["SERVER_ADDR"] : "")]
+        );
+
+        $obj = SystemSettings::where("key", "GO_KEY")->first();
+        if ($obj == null) {
+            SystemSettings::create([
+                "key" => "GO_KEY",
+                "data" => Str::random(64)
+            ]);
+        }
+    }
+}
+
 if (!function_exists('server')) {
     /**
      * @return \App\Models\Server
@@ -597,9 +656,10 @@ if (!function_exists('redirect_now')) {
     function redirect_now($url, $code = 302)
     {
         try {
-            \App::abort($code, '', ['Location' => $url]);
+            abort($code, '', ['Location' => $url]);
         } catch (\Exception $exception) {
-            $previousErrorHandler = set_exception_handler(function () {});
+            $previousErrorHandler = set_exception_handler(function () {
+            });
             restore_error_handler();
             call_user_func($previousErrorHandler, $exception);
             die();
@@ -620,12 +680,12 @@ if (!function_exists('extensionDb')) {
                 "name" => $key,
             ])
             ->first();
-        if ($key == "clientPassword" || $key == "clientUsername"){
+        if ($key == "clientPassword" || $key == "clientUsername") {
             $serverKey = server()->key();
-            if ($serverKey == null){
+            if ($serverKey == null) {
                 return null;
             }
-            $data = json_decode($serverKey->data,true);
+            $data = json_decode($serverKey->data, true);
             $encKey = env('APP_KEY') . auth()->user()->id . server()->id;
             return AES256::decrypt($data[$key], $encKey);
         }

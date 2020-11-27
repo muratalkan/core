@@ -28,6 +28,10 @@ Route::group(['middleware' => ['auth', 'permissions']], function () {
 
     require_once app_path('Http/Controllers/Settings/_routes.php');
 
+    // Go Engine Routes
+
+    require_once app_path('Http/Controllers/GoEngine/_routes.php');
+
     // Widgets Routes
 
     require_once app_path('Http/Controllers/Widgets/_routes.php');
@@ -41,7 +45,7 @@ Route::group(['middleware' => ['auth', 'permissions']], function () {
     require_once app_path('Http/Controllers/Roles/_routes.php');
 
     // Cron Mail Routes
-    require_once app_path('Http/Controllers/CronMail/__routes.php');
+    require_once app_path('Http/Controllers/CronMail/_routes.php');
 
     // Internal Sandbox Routes
 
@@ -187,4 +191,4 @@ Route::post('/upload_info', function () {
 registerModuleRoutes();
 
 
-Route::get('/bildirimYolla','Notification\ExternalNotificationController@accept');
+Route::get('/bildirimYolla', 'Notification\ExternalNotificationController@accept');

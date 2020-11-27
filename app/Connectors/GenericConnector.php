@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use App\Models\Token;
 use App\Models\GoEngine;
+use Illuminate\Support\Str;
 
 class GenericConnector
 {
@@ -16,34 +17,10 @@ class GenericConnector
 
     public function __construct(\App\Models\Server $server = null, $user = null)
     {
-        $engines = GoEngine::where("enabled", true)->get();
-        if ($engines->count() == 0) {
-            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
-        }
-        foreach ($engines as $engine) {
-            $status = @fsockopen(
-                $engine->ip_address,
-                $engine->port,
-                $errno,
-                $errstr,
-                3
-            );
-            if (!is_resource($status)) {
-                $engine->update([
-                    "enabled" => false
-                ]);
-                continue;
-            }
-            $this->engine = $engine;
-            break;
-        }
-        if ($this->engine == null) {
-            abort(504, "Şu anda kullanılabilecek hiçbir liman-go sunucusu yok.");
-        }
         $this->server = $server;
         $this->user = $user;
         $this->client = new Client([
-            "base_uri" => "https://" . $this->engine->ip_address . ":" . $this->engine->port,
+            "base_uri" => getProxyServer(),
             "verify" => false
         ]);
     }
@@ -51,7 +28,7 @@ class GenericConnector
     public function execute($command)
     {
         return trim(
-            self::request('runCommand', [
+            $this->request('runCommand', [
                 "command" => $command,
             ])
         );
@@ -60,7 +37,7 @@ class GenericConnector
     public function sendFile($localPath, $remotePath, $permissions = 0644)
     {
         return trim(
-            self::request('putFile', [
+            $this->request('putFile', [
                 "localPath" => $localPath,
                 "remotePath" => $remotePath,
             ])
@@ -70,7 +47,7 @@ class GenericConnector
     public function receiveFile($localPath, $remotePath)
     {
         return trim(
-            self::request('getFile', [
+            $this->request('getFile', [
                 "localPath" => $localPath,
                 "remotePath" => $remotePath,
             ])
@@ -80,7 +57,7 @@ class GenericConnector
     public function runScript($script, $parameters, $runAsRoot = false)
     {
         return trim(
-            self::request('getFile', [
+            $this->request('getFile', [
                 "script" => $script,
                 "parameters" => $parameters,
                 "runAsRoot" => $runAsRoot,
@@ -106,7 +83,7 @@ class GenericConnector
     public function verify($ip_address, $username, $password, $port, $type)
     {
         return trim(
-            self::request('verify', [
+            $this->request('verify', [
                 "ip_address" => $ip_address,
                 "username" => $username,
                 "password" => $password,

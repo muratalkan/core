@@ -88,6 +88,12 @@
                 </li>
                 @endif
                 <li class="nav-item">
+                    <a href='/go_servisleri' class="nav-link">
+                    <i class="nav-icon fas fa-microchip"></i>
+                        <p>{{__("Go Servisleri")}}</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href='/ayarlar' class="nav-link">
                         <i class="nav-icon fas fa-cog"></i>
                         <p>{{__("Sistem Ayarları")}}</p>

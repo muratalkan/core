@@ -99,6 +99,14 @@ class Kernel extends ConsoleKernel
             })
             ->everyMinute()
             ->name('Mail Check');
+
+        // Mail System.
+        $schedule
+            ->call(function () {
+                updateSystemSettings();
+            })
+            ->everyTenMinutes()
+            ->name('Settings Update');
     }
 
     /**

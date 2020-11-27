@@ -147,6 +147,7 @@ sed -i "s/memory_limit = 128M/memory_limit = 1024M/g" /etc/php/7.3/fpm/php.ini
 
 # Run Database Migration
 php /liman/server/artisan migrate --force
+php /liman/server/artisan update_system_settings
 php /liman/server/artisan cache:clear
 php /liman/server/artisan view:clear
 php /liman/server/artisan config:clear
