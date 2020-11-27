@@ -3,6 +3,7 @@
 use App\User;
 use App\Models\Module;
 use App\Models\AdminNotification;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 
 Artisan::command('administrator', function () {
@@ -152,3 +153,49 @@ Artisan::command('module:remove {module_name}', function ($module_name) {
 Artisan::command('update_system_settings', function () {
     updateSystemSettings();
 })->describe("Update system settings on database");
+
+Artisan::command('open_postgresql', function () {
+    if (trim(`id -u`) != "0") {
+        $this->error("Bu komutu root olarak çalışmalısınız!");
+        return;
+    }
+    if (!$this->confirm('Bunu yaparak postgresql bağlantınızı her yerden erişilebilir yapacaksınız, emin misiniz?')) {
+        return;
+    }
+    $output = `
+    sed -i '/#liman/d' /etc/postgresql/13/main/postgresql.conf 2>&1;
+    sed -i '/#liman/d' /etc/postgresql/13/main/pg_hba.conf 2>&1;
+    printf '\nlisten_addresses=:0.0.0.0 #liman\n' | sudo tee -a /etc/postgresql/13/main/postgresql.conf 2>&1;
+    printf '\nhost    all     all     0.0.0.0/24  md5 #liman\n' | sudo tee -a /etc/postgresql/13/main/pg_hba.conf 2>&1;
+    `;
+    $this->info($output);
+    if (!$this->confirm('İşlem tamamlandı, ayrıca postgresql servisini yeniden başlatmak ister misiniz?')) {
+        return;
+    }
+    `systemctl restart postgresql`;
+})->describe("Open postgresql connection to outside.");
+
+Artisan::command('close_postgresql', function () {
+    if (trim(`id -u`) != "0") {
+        $this->error("Bu komutu root olarak çalışmalısınız!");
+        return;
+    }
+    `
+    sed -i '/#liman/d' /etc/postgresql/13/main/postgresql.conf;
+    sed -i '/#liman/d' /etc/postgresql/13/main/pg_hba.conf;
+    `;
+
+    if (!$this->confirm('İşlem tamamlandı, ayrıca postgresql servisini yeniden başlatmak ister misiniz?')) {
+        return;
+    }
+    `systemctl restart postgresql`;
+})->describe("Close postgresql connection from outside.");
+
+Artisan::command('show_db_password', function () {
+    if (trim(`id -u`) != "0") {
+        $this->error("Bu komutu root olarak çalışmalısınız!");
+        return;
+    }
+    
+    $this->info("Veritabanı parolası : " . env("DB_PASSWORD"));
+})->describe("Show database password");
