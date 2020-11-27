@@ -491,7 +491,7 @@ if (!function_exists('updateSystemSettings')) {
 
         SystemSettings::updateOrCreate(
             ['key' => 'LIMAN_RESTRICTED'],
-            ['data' => env('LIMAN_RESTRICTED')]
+            ['data' => env('LIMAN_RESTRICTED',false)]
         );
 
         SystemSettings::updateOrCreate(
