@@ -16,13 +16,6 @@ jobs:
           repository: limanmys/extension_templates
           path: package/liman/server/storage/extension_templates
           token: ${{ secrets.CI_TOKEN }}
-      - name: Getting Liman' PHP Sandbox
-        uses: actions/checkout@v2
-        with:
-          repository: limanmys/php-sandbox
-          path: package/liman/sandbox/php
-          token: ${{ secrets.CI_TOKEN }}
-          ref: "1.5-dev"
       - name: Getting Liman' Render Engine
         uses: actions/checkout@v2
         with:
@@ -72,7 +65,6 @@ jobs:
           DATE=$(date)
           composer install --no-dev -d package/liman/server
           git --git-dir=package/liman/server/.git log -30 --pretty=format:"%s%x09%ad" > package/liman/server/storage/changelog
-          rm -rf package/liman/server/.git package/liman/sandbox/php/.git
           rm -rf package/liman/server/storage/extension_templates/.git
           rm -rf package/liman/webssh/.git
           rm -rf package/liman/server/node_modules
