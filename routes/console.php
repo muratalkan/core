@@ -165,7 +165,7 @@ Artisan::command('open_postgresql', function () {
     $output = `
     sed -i '/#liman/d' /etc/postgresql/13/main/postgresql.conf 2>&1;
     sed -i '/#liman/d' /etc/postgresql/13/main/pg_hba.conf 2>&1;
-    printf '\nlisten_addresses=:0.0.0.0 #liman\n' | sudo tee -a /etc/postgresql/13/main/postgresql.conf 2>&1;
+    printf '\nlisten_addresses=0.0.0.0 #liman\n' | sudo tee -a /etc/postgresql/13/main/postgresql.conf 2>&1;
     printf '\nhost    all     all     0.0.0.0/24  md5 #liman\n' | sudo tee -a /etc/postgresql/13/main/pg_hba.conf 2>&1;
     `;
     $this->info($output);
