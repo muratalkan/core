@@ -25,7 +25,7 @@ class MarketController extends Controller
         if (!env('MARKET_ACCESS_TOKEN')) {
             return respond("Market'e bağlanmak için bir anahtarınız yok!", 201);
         }
-        $client = self::getClient();
+        $client = $this->getClient();
         try {
             $response = $client->post(env("MARKET_URL") . '/api/users/me');
         } catch (\Exception $e) {
@@ -58,7 +58,7 @@ class MarketController extends Controller
      */
     public function checkMarketUpdates($returnRaw = false)
     {
-        $client = self::getClient();
+        $client = $this->getClient();
 
         $params = [];
         $limanCode = getVersionCode();
@@ -72,15 +72,7 @@ class MarketController extends Controller
 
         $extensions = Extension::all();
         foreach ($extensions as $extension) {
-            $obj = json_decode(
-                file_get_contents(
-                    "/liman/extensions/" .
-                        strtolower($extension->name) .
-                        DIRECTORY_SEPARATOR .
-                        "db.json"
-                ),
-                true
-            );
+            $obj = getExtensionJson($extension->id);
             array_push($params, [
                 "packageName" => "Liman." . $obj["name"],
                 "versionCode" => array_key_exists("version_code", $obj)
@@ -167,7 +159,7 @@ class MarketController extends Controller
 
     public function getClient()
     {
-        if (!self::checkAccess(parse_url(env("MARKET_URL"))["host"])) {
+        if (!$this->checkAccess(parse_url(env("MARKET_URL"))["host"])) {
             if (env("MARKET_URL") == null) {
                 abort(504, "Market bağlantısı ayarlanmamış.");
             }

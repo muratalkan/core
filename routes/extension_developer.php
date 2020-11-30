@@ -33,9 +33,3 @@ Route::post(
 )
     ->middleware('admin')
     ->name('extension_new_page');
-
-// Extension Download Page
-Route::get(
-    '/indir/eklenti/{extension_id}',
-    'Extension\MainController@download'
-)->name('extension_download');

@@ -15,6 +15,7 @@ use App\Models\RoleMapping;
 use App\Models\RoleUser;
 use App\Models\PermissionData;
 use App\Models\ServerGroup;
+use App\Models\SystemSettings;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use Illuminate\Support\Str;
@@ -248,15 +249,8 @@ class MainController extends Controller
 
     public function getExtensionFunctions()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
+
         $functions = array_key_exists("functions", $extension)
             ? $extension["functions"]
             : [];
@@ -377,15 +371,8 @@ class MainController extends Controller
 
     public function getPermisssionData()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                strtolower(request('extension_name')) .
-                DIRECTORY_SEPARATOR .
-                "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
+
         $function = collect($extension['functions'])
             ->where('name', request('function_name'))
             ->first();
@@ -663,21 +650,12 @@ input(type=\"imtcp\" port=\"514\")";
 
     public function getDNSServers()
     {
-        $data = `grep nameserver /etc/resolv.conf | grep -v "#" | grep nameserver`;
-        $arr = explode("\n", $data);
-        $arr = array_filter($arr);
-        $clean = [];
-        foreach ($arr as $ip) {
-            if ($ip == "") {
-                continue;
-            }
-            $foo = explode(" ", trim($ip));
-            if (count($foo) == 1) {
-                continue;
-            }
-            array_push($clean, $foo[1]);
+        $obj = SystemSettings::where(['key' => 'SYSTEM_DNS'])->first();
+        if($obj){
+            $parsed = json_decode($obj->data,true);
+            return respond([$parsed["server1"],$parsed["server2"],$parsed["server3"]]);
         }
-        return respond($clean);
+        return respond([]);
     }
 
     public function setDNSServers()

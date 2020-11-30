@@ -27,7 +27,7 @@ class MainController extends Controller
 
     public function initializeClass()
     {
-        $this->extension = getExtensionJson(extension()->name);
+        $this->extension = getExtensionJson(extension()->id);
 
         $this->checkForMissingSettings();
 
@@ -120,16 +120,8 @@ class MainController extends Controller
                 "target_name" => request('function_name'),
             ]);
             $function = request("function_name");
-            $extensionJson = json_decode(
-                file_get_contents(
-                    "/liman/extensions/" .
-                        strtolower(extension()->name) .
-                        DIRECTORY_SEPARATOR .
-                        "db.json"
-                ),
-                true
-            );
-
+            $extensionJson = getExtensionJson(extension()->id);
+            
             $functions = collect([]);
 
             if (array_key_exists("functions", $extensionJson)) {

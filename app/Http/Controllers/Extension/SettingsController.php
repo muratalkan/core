@@ -63,47 +63,25 @@ class SettingsController extends Controller
     public function settings_one()
     {
         system_log(7, "EXTENSION_SETTINGS_PAGE", [
-            "extension_id" => extension()->_id,
+            "extension_id" => extension()->id,
         ]);
         if (extension()->language == null) {
             extension()->update([
                 "language" => "php",
             ]);
-            $extension = json_decode(
-                file_get_contents(
-                    "/liman/extensions/" .
-                        strtolower(extension()->name) .
-                        DIRECTORY_SEPARATOR .
-                        "db.json"
-                ),
-                true
-            );
+            $extension = getExtensionJson(extension()->id);
             $extension["language"] = "php";
-            file_put_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json",
-                json_encode($extension, JSON_PRETTY_PRINT)
-            );
+            setExtensionJson($extension,extension()->id);
         }
         // Return view with required parameters.
         return magicView('extension_pages.one', [
-            "extension" => getExtensionJson(extension()->name),
+            "extension" => getExtensionJson(extension()->id),
         ]);
     }
 
     public function update()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         if (request('type') == "general") {
             $params = request()->all();
@@ -146,13 +124,7 @@ class SettingsController extends Controller
         } else {
             $extension["version_code"] = 1;
         }
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_UPDATE", [
             "extension_id" => extension()->_id,
@@ -164,15 +136,7 @@ class SettingsController extends Controller
 
     public function add()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         $values = $extension[request('table')];
         switch (request('table')) {
@@ -201,13 +165,7 @@ class SettingsController extends Controller
             $extension["version_code"] = 1;
         }
 
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_ADD", [
             "extension_id" => extension()->id,
@@ -219,15 +177,7 @@ class SettingsController extends Controller
 
     public function remove()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         $values = $extension[request('table')];
         foreach ($values as $key => $value) {
@@ -245,13 +195,7 @@ class SettingsController extends Controller
             $extension["version_code"] = 1;
         }
 
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_REMOVE", [
             "extension_id" => extension()->id,
@@ -264,15 +208,8 @@ class SettingsController extends Controller
     public function getFunctionParameters()
     {
         $function_name = request('function_name');
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
+
         $function = collect($extension['functions'])
             ->where('name', $function_name)
             ->first();
@@ -296,15 +233,7 @@ class SettingsController extends Controller
     public function addFunctionParameter()
     {
         $function_name = request('function_name');
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         if (isset($extension['functions'])) {
             foreach ($extension['functions'] as $key => $function) {
@@ -327,13 +256,8 @@ class SettingsController extends Controller
                         $extension["version_code"] = 1;
                     }
 
-                    file_put_contents(
-                        "/liman/extensions/" .
-                            strtolower(extension()->name) .
-                            DIRECTORY_SEPARATOR .
-                            "db.json",
-                        json_encode($extension, JSON_PRETTY_PRINT)
-                    );
+                    setExtensionJson($extension,extension()->id);
+
                     return respond("Parametre başarıyla eklendi!");
                 }
                 break;
@@ -347,15 +271,7 @@ class SettingsController extends Controller
         $function_name = request('function_name');
         $parameter_variable = request('parameter_variable');
 
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         if (isset($extension['functions'])) {
             foreach ($extension['functions'] as $key => $function) {
@@ -379,13 +295,7 @@ class SettingsController extends Controller
                                 } else {
                                     $extension["version_code"] = 1;
                                 }
-                                file_put_contents(
-                                    "/liman/extensions/" .
-                                        strtolower(extension()->name) .
-                                        DIRECTORY_SEPARATOR .
-                                        "db.json",
-                                    json_encode($extension, JSON_PRETTY_PRINT)
-                                );
+                                setExtensionJson($extension,extension()->id);
                                 return respond("Parametre başarıyla silindi!");
                             }
                         }
@@ -400,15 +310,7 @@ class SettingsController extends Controller
 
     public function addFunction()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         $functions = [];
 
@@ -444,13 +346,7 @@ class SettingsController extends Controller
         } else {
             $extension["version_code"] = 1;
         }
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_ADD_FUNCTION", [
             "extension_id" => extension()->id,
@@ -462,15 +358,7 @@ class SettingsController extends Controller
 
     public function updateFunction()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         $functions = [];
 
@@ -521,13 +409,7 @@ class SettingsController extends Controller
         } else {
             $extension["version_code"] = 1;
         }
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_UPDATE_FUNCTION", [
             "extension_id" => extension()->id,
@@ -539,15 +421,7 @@ class SettingsController extends Controller
 
     public function removeFunction()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
 
         $functions = [];
 
@@ -571,13 +445,7 @@ class SettingsController extends Controller
         } else {
             $extension["version_code"] = 1;
         }
-        file_put_contents(
-            "/liman/extensions/" .
-                strtolower(extension()->name) .
-                DIRECTORY_SEPARATOR .
-                "db.json",
-            json_encode($extension, JSON_PRETTY_PRINT)
-        );
+        setExtensionJson($extension,extension()->id);
 
         system_log(7, "EXTENSION_SETTINGS_REMOVE_FUNCTION", [
             "extension_id" => extension()->id,

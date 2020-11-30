@@ -46,15 +46,8 @@ class OneController extends Controller
 
     public function widgetList()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
+
         return $extension["widgets"];
     }
 }

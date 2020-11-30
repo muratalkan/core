@@ -15,18 +15,7 @@ class MainController extends Controller
 {
     public function getMailTags()
     {
-        $path = "/liman/extensions/" . strtolower(extension()->name) . "/db.json";
-        if (!is_file($path)) {
-            return respond("Bu eklentinin bir veritabanı yok!", 201);
-        }
-
-        $file = file_get_contents($path);
-
-        $json = json_decode($file, true);
-
-        if (json_last_error() != JSON_ERROR_NONE) {
-            return respond("Eklenti veritabanı okunamıyor.", 201);
-        }
+        $json = getExtensionJson(extension()->id);
 
         if (array_key_exists("mail_tags", $json)) {
             return respond($json["mail_tags"]);
@@ -63,21 +52,17 @@ class MainController extends Controller
 
     private $tagTexts = [];
 
-    private function getTagText($key, $extension_name)
+    private function getTagText($key, $extension_id)
     {
-        if (!array_key_exists($extension_name, $this->tagTexts)) {
-            $file = file_get_contents("/liman/extensions/" . strtolower($extension_name) . "/db.json");
-            $json = json_decode($file, true);
-            if (json_last_error() != JSON_ERROR_NONE) {
-                return $key;
-            }
-            $this->tagTexts[$extension_name] = $json;
+        if (!array_key_exists($extension_id, $this->tagTexts)) {
+            $json = getExtensionJson($extension_id);
+            $this->tagTexts[$extension_id] = $json;
         }
 
-        if (!array_key_exists("mail_tags", $this->tagTexts[$extension_name])) {
+        if (!array_key_exists("mail_tags", $this->tagTexts[$extension_id])) {
             return $key;
         }
-        foreach ($this->tagTexts[$extension_name]["mail_tags"] as $obj) {
+        foreach ($this->tagTexts[$extension_id]["mail_tags"] as $obj) {
             if ($obj["tag"] == $key) {
                 return $obj["description"];
             }
@@ -91,7 +76,7 @@ class MainController extends Controller
             $ext = Extension::find($obj->extension_id);
             if ($ext) {
                 $obj->extension_name = $ext->display_name;
-                $obj->tag_string = $this->getTagText($obj->target, $ext->name);
+                $obj->tag_string = $this->getTagText($obj->target, $ext->id);
             } else {
                 $obj->extension_name = "Bu eklenti silinmiş!";
                 $obj->tag_string = "Bu eklenti silinmiş!";

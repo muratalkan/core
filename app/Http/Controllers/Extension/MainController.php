@@ -18,6 +18,7 @@ use App\Jobs\ExtensionDependenciesJob;
 use Illuminate\Contracts\Bus\Dispatcher;
 use App\Models\AdminNotification;
 use App\Models\ExtensionFiles;
+use App\Models\SystemSettings;
 use Carbon\Carbon;
 
 /**
@@ -53,30 +54,6 @@ class MainController extends Controller
         ]);
     }
 
-    /**
-     * @return BinaryFileResponse
-     */
-    public function download()
-    {
-        // Generate Extension Folder Path
-        $path = "/liman/extensions/" . strtolower(extension()->name);
-        $tempPath = "/tmp/" . Str::random() . ".zip";
-
-        // Zip the current extension
-        shell_exec("cd $path && zip -r $tempPath .");
-
-        system_log(6, "EXTENSION_DOWNLOAD", [
-            "extension_id" => extension()->id,
-        ]);
-
-        // Return zip as download and delete it after sent.
-        return response()
-            ->download(
-                $tempPath,
-                extension()->name . "-" . extension()->version . ".lmne"
-            )
-            ->deleteFileAfterSend();
-    }
 
     /**
      * @return JsonResponse|Response
@@ -226,7 +203,14 @@ class MainController extends Controller
         $new->fill($json);
         $new->status = "1";
         $new->save();
+
+        replicateExtensionDbs();
         
+        SystemSettings::updateOrCreate(
+            ['key' => 'EXTENSION_DB-' . $new->id],
+            ['data' => json_encode($json)]
+        );
+
         $file = request()->file('extension');
         $str = file_get_contents($zipFile);
         $command = "/usr/bin/sha256sum " . $zipFile . " | awk '{ print $1 }'";
@@ -290,17 +274,11 @@ class MainController extends Controller
             "language" => $json->language,
         ]);
 
-        $system = rootSystem();
-        
-        $system->userAdd($ext->id);
-
         $passPath = '/liman/keys' . DIRECTORY_SEPARATOR . $ext->id;
         file_put_contents($passPath, Str::random(32));
 
         request()->request->add(['server' => "none"]);
         request()->request->add(['extension_id' => $ext->id]);
-
-        $system->fixExtensionPermissions($ext->id, $ext->name);
 
         system_log(6, "EXTENSION_CREATE", [
             "extension_id" => $ext->id,

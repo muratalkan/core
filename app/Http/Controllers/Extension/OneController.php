@@ -30,15 +30,7 @@ class OneController extends Controller
      */
     public function serverSettings()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
         foreach ($extension["database"] as $key) {
             if (
                 $key["type"] == "password" &&
@@ -151,15 +143,7 @@ class OneController extends Controller
      */
     public function serverSettingsPage()
     {
-        $extension = json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower(extension()->name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
+        $extension = getExtensionJson(extension()->id);
         system_log(7, "EXTENSION_SETTINGS_PAGE", [
             "extension_id" => extension()->id,
         ]);
@@ -222,12 +206,7 @@ class OneController extends Controller
             "status" => "0"
         ]);
         
-
-        $file = file_get_contents("/liman/extensions/" .strtolower(extension()->name) . "/db.json");
-        $json = json_decode($file, true);
-        if (json_last_error() != JSON_ERROR_NONE) {
-            return respond("Eklenti dosyası okunurken bir hata oluştu!", 201);
-        }
+        $json = getExtensionJson(extension()->id);
 
         if (array_key_exists("dependencies", $json) && $json["dependencies"] != "") {
             $job = (new ExtensionDependenciesJob(
@@ -268,15 +247,8 @@ class OneController extends Controller
     {
         $ext_name = extension()->name;
         hook('extension_delete_attempt', extension());
+        
         try {
-            shell_exec(
-                "rm -rf " . "/liman/extensions/" . strtolower(extension()->name)
-            );
-        } catch (\Exception $exception) {
-        }
-
-        try {
-            rootSystem()->userRemove(extension()->id);
             extension()->delete();
         } catch (\Exception $exception) {
         }

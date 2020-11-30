@@ -5,11 +5,6 @@
 ])
 @if(env('EXTENSION_DEVELOPER_MODE') == true)
     @include('modal-button',[
-        "class" => "btn-secondary",
-        "target_id" => "extensionExport",
-        "text" => "İndir"
-    ])
-    @include('modal-button',[
         "class" => "btn-info",
         "target_id" => "newExtension",
         "text" => "Yeni"
@@ -152,17 +147,6 @@ foreach ($extensions as $extension) {
 }
 ?>
 
-@include('modal',[
-    "id"=>"extensionExport",
-    "onsubmit" => "downloadFile",
-    "title" => "Eklenti İndir",
-    "next" => "",
-    "inputs" => [
-        "Eklenti Seçin:extension_id" => $input_extensions
-    ],
-    "submit_text" => "İndir"
-])
-
 @php
     $templates = fetchExtensionTemplates();
 @endphp
@@ -243,13 +227,6 @@ foreach ($extensions as $extension) {
         });
     }
 
-    function downloadFile(form){
-        window.location.assign('/indir/eklenti/' + form.getElementsByTagName('select')[0].value);
-        setTimeout(function(){
-            Swal.close();
-        }, 1000);
-        return false;
-    }
     $("#extensionUpload input").on('change',function(){
         if(this.files[0].size / 1024 / 1024 > 100){
             $(this).val('');

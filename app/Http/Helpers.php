@@ -481,6 +481,51 @@ if (!function_exists('getGoEnginePassword')) {
     }
 }
 
+if (!function_exists('replicateExtensionDbs')) {
+    /**
+     * @return \App\Models\Server
+     */
+    function replicateExtensionDbs()
+    {
+        $databases = SystemSettings::where('key', 'like', 'EXTENSION_DB%')->get();
+        foreach($databases as $database) {
+            $id = substr($database->key,13);
+            file_put_contents("/liman/extensions/" . $id,$database->data);
+        }
+    }
+}
+
+if (!function_exists('setExtensionJson')) {
+    /**
+     * @return \App\Models\Server
+     */
+    function setExtensionJson($data = [], $extension_id)
+    {
+        $encoded = json_encode($data);
+        file_put_contents("/liman/extensions/" . $extension_id,$encoded);
+        SystemSettings::updateOrCreate(
+            ['key' => 'EXTENSION_DB-' . $extension_id],
+            ['data' => json_encode($encoded)]
+        );
+    }
+}
+
+if (!function_exists('getExtensionJson')) {
+    /**
+     * @param $extension
+     * @return Array
+     */
+    function getExtensionJson($extension_id)
+    {
+        return json_decode(
+            file_get_contents(
+                "/liman/extensions/" . $extension_id
+            ),
+            true
+        );
+    }
+}
+
 if (!function_exists('updateSystemSettings')) {
     function updateSystemSettings()
     {
@@ -547,7 +592,7 @@ if (!function_exists('servers')) {
 if (!function_exists('extensions')) {
     /**
      * @param array $filter
-     * @return array
+     * @return object
      */
     function extensions($filter = [])
     {
@@ -577,28 +622,6 @@ if (!function_exists('user')) {
     function user()
     {
         return auth()->user();
-    }
-}
-
-if (!function_exists('sandbox')) {
-    /**
-     * @param null $id
-     * @return App\Sandboxes\Sandbox
-     */
-    function sandbox($language = null)
-    {
-        if ($language == null) {
-            $language = extension()->language;
-        }
-        switch ($language) {
-            case "python":
-                return new App\Sandboxes\PythonSandbox();
-                break;
-            case "php":
-            default:
-                return new App\Sandboxes\PHPSandbox();
-                break;
-        }
     }
 }
 
@@ -633,24 +656,6 @@ if (!function_exists('magicView')) {
     }
 }
 
-if (!function_exists('getExtensionJson')) {
-    /**
-     * @param $extension
-     * @return Array
-     */
-    function getExtensionJson($extension_name)
-    {
-        return json_decode(
-            file_get_contents(
-                "/liman/extensions/" .
-                    strtolower($extension_name) .
-                    DIRECTORY_SEPARATOR .
-                    "db.json"
-            ),
-            true
-        );
-    }
-}
 
 if (!function_exists('redirect_now')) {
     function redirect_now($url, $code = 302)

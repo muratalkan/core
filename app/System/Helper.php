@@ -19,42 +19,6 @@ class Helper
         ]);
     }
 
-    public function userAdd($extension_id)
-    {
-        try {
-            $this->client->request(
-                'POST',
-                "/userAdd",
-                [
-                    "form_params" => [
-                        "extension_id" => $extension_id
-                    ],
-                ]
-            );
-        } catch (\Exception $e) {
-            return false;
-        }
-        return true;
-    }
-
-    public function userRemove($extension_id)
-    {
-        try {
-            $this->client->request(
-                'POST',
-                "/userRemove",
-                [
-                    "form_params" => [
-                        "extension_id" => cleanDash($extension_id)
-                    ],
-                ]
-            );
-        } catch (\Exception $e) {
-            return false;
-        }
-        return true;
-    }
-
     public function dnsUpdate($server1, $server2, $server3)
     {
         $arr = [
